@@ -95,12 +95,12 @@ def check_partner(func):
             else:
                 bot.send_message(sender_id, 'Начните диалог коммандой /new')
                 return
-        func()
+        func(message)
 
     return wrapper
 
 
-@bot.message_handler(content_types=["text"])
+@bot.message_handler(content_types=['text'])
 @check_partner
 def on_message_text(message):
     sender_id = message.chat.id
