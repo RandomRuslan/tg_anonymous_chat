@@ -95,17 +95,63 @@ def check_partner(func):
             else:
                 bot.send_message(sender_id, 'Начните диалог коммандой /new')
                 return
-        func(message)
+
+        receiver_id = manager.pairs[sender_id]
+
+        func(message, sender_id, receiver_id)
+
+        if message.caption:
+            bot.send_message(receiver_id, message.caption)
 
     return wrapper
 
 
 @bot.message_handler(content_types=['text'])
 @check_partner
-def on_message_text(message):
-    sender_id = message.chat.id
-    receiver_id = manager.pairs[sender_id]
+def on_message_text(message, sender_id, receiver_id):
     bot.send_message(receiver_id, message.text)
+
+
+@bot.message_handler(content_types=['voice'])
+@check_partner
+def on_message_voice(message, sender_id, receiver_id):
+    bot.send_voice(receiver_id, message.voice.file_id)
+
+
+@bot.message_handler(content_types=['sticker'])
+@check_partner
+def on_message_sticker(message, sender_id, receiver_id):
+    bot.send_sticker(receiver_id, message.sticker.file_id)
+
+
+@bot.message_handler(content_types=['audio'])
+@check_partner
+def on_message_audio(message, sender_id, receiver_id):
+    bot.send_audio(receiver_id, message.audio.file_id)
+
+
+@bot.message_handler(content_types=['photo'])
+@check_partner
+def on_message_photo(message, sender_id, receiver_id):
+    bot.send_photo(receiver_id, message.photo[-1].file_id)
+
+
+@bot.message_handler(content_types=['video'])
+@check_partner
+def on_message_video(message, sender_id, receiver_id):
+    bot.send_video(receiver_id, message.video.file_id)
+
+
+@bot.message_handler(content_types=['video_note'])
+@check_partner
+def on_message_video_note(message, sender_id, receiver_id):
+    bot.send_video_note(receiver_id, message.video_note.file_id)
+
+
+@bot.message_handler(content_types=['document'])
+@check_partner
+def on_message_document(message, sender_id, receiver_id):
+    bot.send_document(receiver_id, message.document.file_id)
 
 
 if __name__ == '__main__':
