@@ -85,17 +85,25 @@ def command_stop(message):
     bot.send_message(receiver_id, 'Ваш собеседник прервал диалог. Для начала нового диалога используйте команду /new')
 
 
-@bot.message_handler(content_types=["text"])
-def main(message):
-    sender_id = message.chat.id
-    if manager.pairs.get(sender_id) is None:
-        if sender_id in manager.queue:
-            bot.send_message(sender_id, 'Все еще ожидайте')
-            return
-        else:
-            bot.send_message(sender_id, 'Начните диалог коммандой /new')
-            return
+def check_partner(func):
+    def wrapper(message):
+        sender_id = message.chat.id
+        if manager.pairs.get(sender_id) is None:
+            if sender_id in manager.queue:
+                bot.send_message(sender_id, 'Все еще ожидайте')
+                return
+            else:
+                bot.send_message(sender_id, 'Начните диалог коммандой /new')
+                return
+        func()
 
+    return wrapper
+
+
+@bot.message_handler(content_types=["text"])
+@check_partner
+def on_message_text(message):
+    sender_id = message.chat.id
     receiver_id = manager.pairs[sender_id]
     bot.send_message(receiver_id, message.text)
 
