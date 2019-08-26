@@ -43,7 +43,7 @@ def command_create(message):
         'is_male': True
     }
     print(manager.users)
-    
+
 
 @bot.message_handler(commands=['new'])
 def command_new(message):
@@ -53,6 +53,10 @@ def command_new(message):
         return
 
     queue = manager.queue
+    if sender_id in queue:
+        bot.send_message(sender_id, 'Поиск уже идет')
+        return
+
     for id in queue:
         bot.send_message(sender_id, 'Пара найдена! Вы общаетесь с {}'.format(id))
         bot.send_message(id, 'Пара найдена! Вы общаетесь с {}'.format(sender_id))
