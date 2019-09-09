@@ -3,21 +3,10 @@ import telebot
 from time import time
 
 from constants import TOKEN
-
-
-class Manager:
-    users = None
-    pairs = None
-    queue = None
-
-    def __init__(self):
-        self.users = {}
-        self.pairs = {}
-        self.queue = set()
-
+from ac_db import DBConnecter
+import ac_ram
 
 bot = telebot.TeleBot(TOKEN)
-manager = Manager()
 
 
 @bot.message_handler(commands=['start'])
@@ -28,7 +17,7 @@ def command_start(message):
 
 @bot.message_handler(commands=['help'])
 def command_help(message):
-    text = 'Тыры-пыры'
+    text = 'Тыры-пыры helper'
     bot.send_message(message.chat.id, text)
 
 
@@ -39,10 +28,40 @@ def command_create(message):
         bot.send_message(sender_id, 'Пользователь уже создан')
         return
 
+    text = message.text.split()
+    if len(text) < 2:
+        bot.send_message(sender_id, 'Необходимо указать ваш пол')
+        return
+
+    gender = text[1]
+    if gender.lower() in ['м', 'm']:
+        gender = 'm'
+    elif gender.lower() in ['ж', 'f']:
+        gender = 'f'
+    else:
+        bot.send_message(sender_id, 'Пол указан неверно')
+        return
+
+    if len(text) > 2:
+        preference = text[2]
+        if preference in ['м', 'm']:
+            preference = 'm'
+        elif preference in ['ж', 'f']:
+            preference = 'f'
+        else:
+            preference = 'b'
+    else:
+        preference = 'b'
+
+    db_conn.create_user(sender_id, message.chat.username, gender, preference)
+
     manager.users[sender_id] = {
-        'is_male': True
+        'gender': gender,
+        'preference': preference
     }
-    print(manager.users)
+
+    bot.send_message(sender_id, 'Создан пользователь:\nпол - {gender}\nпредпочтения - {preference}'
+                     .format(gender=gender, preference=preference))
 
 
 @bot.message_handler(commands=['new'])
@@ -160,4 +179,6 @@ def on_message_document(message, sender_id, receiver_id):
 
 if __name__ == '__main__':
     print("START")
+    db_conn = DBConnecter()
+    manager = ac_ram.Manager(db_conn)
     bot.polling(none_stop=True)
