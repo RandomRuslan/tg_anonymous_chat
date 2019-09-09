@@ -38,3 +38,17 @@ class DBConnecter:
             raise
         finally:
             session.close()
+
+    def load_users(self):
+        users = {}
+
+        session = self.DBSession()
+        rows = session.query(User).all()
+        for row in rows:
+            users[row.id] = {
+                'gender': row.gender,
+                'preference': row.preference
+            }
+
+        session.close()
+        return users

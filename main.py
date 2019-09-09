@@ -4,21 +4,9 @@ from time import time
 
 from constants import TOKEN
 from ac_db import DBConnecter
-
-
-class Manager:
-    users = None
-    pairs = None
-    queue = None
-
-    def __init__(self):
-        self.users = {}
-        self.pairs = {}
-        self.queue = set()
-
+import ac_ram
 
 bot = telebot.TeleBot(TOKEN)
-manager = Manager()
 
 
 @bot.message_handler(commands=['start'])
@@ -192,4 +180,5 @@ def on_message_document(message, sender_id, receiver_id):
 if __name__ == '__main__':
     print("START")
     db_conn = DBConnecter()
+    manager = ac_ram.Manager(db_conn)
     bot.polling(none_stop=True)
