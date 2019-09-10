@@ -77,11 +77,12 @@ def command_new(message):
         return
 
     for id in queue:
-        bot.send_message(sender_id, 'Пара найдена! Вы общаетесь с {}'.format(id))
-        bot.send_message(id, 'Пара найдена! Вы общаетесь с {}'.format(sender_id))
         manager.queue.remove(id)
         manager.pairs[id] = sender_id
         manager.pairs[sender_id] = id
+        bot.send_message(sender_id, 'Пара найдена! Вы общаетесь с {}'.format(id))
+        bot.send_message(id, 'Пара найдена! Вы общаетесь с {}'.format(sender_id))
+        db_conn.create_chat(sender_id, id)
         break
     else:
         bot.send_message(sender_id, 'Ожидайте')
@@ -106,6 +107,7 @@ def command_stop(message):
 
     bot.send_message(sender_id, 'Диалог окончен. Для начала нового диалога используйте команду /new')
     bot.send_message(receiver_id, 'Ваш собеседник прервал диалог. Для начала нового диалога используйте команду /new')
+    db_conn.close_chat(sender_id, receiver_id)
 
 
 def check_partner(func):

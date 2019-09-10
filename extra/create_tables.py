@@ -9,7 +9,19 @@ db.execute('''
         id INTEGER PRIMARY KEY,
         username VARCHAR(64) UNIQUE NOT NULL,
         gender VARCHAR(2) NOT NULL, 
-        preference VARCHAR(2));
+        preference VARCHAR(2)
+    );
+''')
+
+
+db.execute('''
+    CREATE TABLE IF NOT EXISTS chats (
+        id SERIAL,
+        userid1 INTEGER UNIQUE NOT NULL,
+        userid2 INTEGER UNIQUE NOT NULL,
+        startts TIMESTAMP, 
+        finishts TIMESTAMP
+    );
 ''')
 
 # try:
