@@ -17,8 +17,8 @@ db.execute('''
 db.execute('''
     CREATE TABLE IF NOT EXISTS chats (
         id SERIAL,
-        userid1 INTEGER UNIQUE NOT NULL,
-        userid2 INTEGER UNIQUE NOT NULL,
+        userid1 INTEGER NOT NULL,
+        userid2 INTEGER NOT NULL,
         startts TIMESTAMP, 
         finishts TIMESTAMP
     );

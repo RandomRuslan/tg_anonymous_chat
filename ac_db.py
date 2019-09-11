@@ -9,7 +9,7 @@ from constants import DB_URL
 Base = declarative_base()
 
 
-class User(Base):
+class UserT(Base):
     __tablename__ = 'users'
 
     id = sa.Column(sa.INT, primary_key=True)
@@ -18,7 +18,11 @@ class User(Base):
     preference = sa.Column(sa.VARCHAR(2))
 
 
-class Chat(Base):
+class ChatT(Base):
+    """
+    userid1 < userid2
+    """
+
     __tablename__ = 'chats'
 
     id = sa.Column(sa.INT, primary_key=True, autoincrement=True)
@@ -34,7 +38,7 @@ class DBConnecter:
         self.DBSession = sessionmaker(bind=self.engine)
 
     def create_user(self, id, username, gender, preference):
-        user = User(
+        user = UserT(
             id=id,
             username=username,
             gender=gender,
@@ -43,10 +47,10 @@ class DBConnecter:
         self._store(user)
 
     def create_chat(self, user1, user2):
-        user1, user2 = DBConnecter._get_sorted_users(user1, user2)
+        user1, user2 = sorted([user1, user2])
         start_ts = datetime.now().replace(microsecond=0)
 
-        chat = Chat(
+        chat = ChatT(
             userid1=user1,
             userid2=user2,
             startts=start_ts
@@ -54,13 +58,13 @@ class DBConnecter:
         self._store(chat)
 
     def close_chat(self, user1, user2):
-        user1, user2 = DBConnecter._get_sorted_users(user1, user2)
+        user1, user2 = sorted([user1, user2])
         finish_ts = datetime.now().replace(microsecond=0)
 
         session = self.DBSession()
         try:
-            session.query(Chat).\
-                filter(sa.and_(Chat.userid1 == user1, Chat.userid2 == user2)).\
+            session.query(ChatT).\
+                filter(sa.and_(ChatT.userid1 == user1, ChatT.userid2 == user2)).\
                 update({'finishts': finish_ts})
 
             session.commit()
@@ -81,18 +85,11 @@ class DBConnecter:
         finally:
             session.close()
 
-    @staticmethod
-    def _get_sorted_users(user1, user2):
-        if user1 < user2:
-            return user1, user2
-        else:
-            return user2, user1
-
     def load_users(self):
         users = {}
 
         session = self.DBSession()
-        rows = session.query(User).all()
+        rows = session.query(UserT).all()
         for row in rows:
             users[row.id] = {
                 'gender': row.gender,
@@ -101,3 +98,15 @@ class DBConnecter:
 
         session.close()
         return users
+
+    def load_pairs(self):
+        pairs = {}
+
+        session = self.DBSession()
+        rows = session.query(ChatT).filter(ChatT.finishts == None).all()
+        for row in rows:
+            if row.userid1 not in pairs and row.userid2 not in pairs:
+                pairs[row.userid1] = row.userid2
+                pairs[row.userid2] = row.userid1
+
+        return pairs
