@@ -86,27 +86,17 @@ class DBConnecter:
             session.close()
 
     def load_users(self):
-        users = {}
-
         session = self.DBSession()
         rows = session.query(UserT).all()
-        for row in rows:
-            users[row.id] = {
-                'gender': row.gender,
-                'preference': row.preference
-            }
-
         session.close()
-        return users
+
+        for row in rows:
+            yield {'id': row.id, 'gender': row.gender, 'preference': row.preference}
 
     def load_pairs(self):
-        pairs = {}
-
         session = self.DBSession()
         rows = session.query(ChatT).filter(ChatT.finishts == None).all()
-        for row in rows:
-            if row.userid1 not in pairs and row.userid2 not in pairs:
-                pairs[row.userid1] = row.userid2
-                pairs[row.userid2] = row.userid1
+        session.close()
 
-        return pairs
+        for row in rows:
+            yield (row.userid1, row.userid2)

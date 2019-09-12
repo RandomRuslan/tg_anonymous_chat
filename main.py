@@ -4,7 +4,7 @@ from time import time
 
 from constants import TOKEN
 from ac_db import DBConnecter
-import ac_ram
+from ac_ram import Manager
 
 bot = telebot.TeleBot(TOKEN)
 
@@ -53,13 +53,7 @@ def command_create(message):
     else:
         preference = 'b'
 
-    db_conn.create_user(sender_id, message.chat.username, gender, preference)
-
-    manager.users[sender_id] = {
-        'gender': gender,
-        'preference': preference
-    }
-
+    manager.create_user(sender_id, message.chat.username, gender, preference)
     bot.send_message(sender_id, 'Создан пользователь:\nпол - {gender}\nпредпочтения - {preference}'
                      .format(gender=gender, preference=preference))
 
@@ -182,5 +176,5 @@ def on_message_document(message, sender_id, receiver_id):
 if __name__ == '__main__':
     print("START")
     db_conn = DBConnecter()
-    manager = ac_ram.Manager(db_conn)
+    manager = Manager(db_conn)
     bot.polling(none_stop=True)
