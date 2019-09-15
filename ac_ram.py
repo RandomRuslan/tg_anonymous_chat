@@ -21,10 +21,14 @@ class Manager:
 
         Repeater(5, self.match_pairs).start()
 
-    def create_user(self, id, username, gender, preference):
-        self.db_conn.create_user(id, username, gender, preference)
-        self.users[id] = User(gender, preference)
-        return self.users[id]
+    def create_user(self, user_id, username, gender, preference):
+        self.db_conn.create_user(user_id, username, gender, preference)
+        self.users[user_id] = User(gender, preference)
+        return self.users[user_id]
+
+    def update_user(self, user_id, preference):
+        if self.users.get(user_id) and self.users[user_id].preference != preference:
+            self.db_conn.update_user(user_id, preference)
 
     def load_users(self):
         users = {}

@@ -9,6 +9,18 @@ from ac_ram import Manager
 bot = telebot.TeleBot(TOKEN)
 
 
+def check_user(func):
+    def wrapper(message):
+        sender_id = message.chat.id
+        if manager.users.get(sender_id) is None:
+            bot.send_message(sender_id, 'Сначала создайте пользователя. Укажите ваш пол и предпочтения.\nКоманда: /create м/ж м/ж/мж')
+            return
+
+        func(message)
+
+    return wrapper
+
+
 @bot.message_handler(commands=['start'])
 def command_start(message):
     text = 'Добро пожаловать!\nПеред использованием бота обязательно прочтите инструкцию и предостережения, вызвав комманду /help'
@@ -58,13 +70,32 @@ def command_create(message):
                      .format(gender=gender, preference=preference))
 
 
+@bot.message_handler(commands=['prefer'])
+@check_user
+def command_prefer(message):
+    sender_id = message.chat.id
+    text = message.text.split()
+    if len(text) < 2:
+        bot.send_message(sender_id, 'Необходимо указать ваши предпочтения')
+        return
+
+    preference = text[1]
+    if preference in ['м', 'm']:
+        preference = 'm'
+    elif preference in ['ж', 'f']:
+        preference = 'f'
+    else:
+        preference = 'b'
+
+    manager.update_user(sender_id, preference)
+    bot.send_message(sender_id, 'Предпочтения изменены: {preference}'.format(preference=preference))
+
+
 @bot.message_handler(commands=['new'])
+@check_user
 def command_new(message):
     sender_id = message.chat.id
-    user = manager.users.get(sender_id)
-    if user is None:
-        bot.send_message(sender_id, 'Сначала создайте пользователя')
-        return
+    user = manager.users[sender_id]
 
     if manager.pairs.get(sender_id) is not None:
         bot.send_message(sender_id, 'Вы уже в диалоге!')
@@ -79,6 +110,7 @@ def command_new(message):
 
 
 @bot.message_handler(commands=['stop'])
+@check_user
 def command_stop(message):
     sender_id = message.chat.id
     if sender_id in manager.queue:
@@ -98,7 +130,7 @@ def command_stop(message):
     db_conn.close_chat(sender_id, receiver_id)
 
 
-def check_partner(func):
+def handle_message(func):
     def wrapper(message):
         sender_id = message.chat.id
         if manager.pairs.get(sender_id) is None:
@@ -120,49 +152,49 @@ def check_partner(func):
 
 
 @bot.message_handler(content_types=['text'])
-@check_partner
+@handle_message
 def on_message_text(message, sender_id, receiver_id):
     bot.send_message(receiver_id, message.text)
 
 
 @bot.message_handler(content_types=['voice'])
-@check_partner
+@handle_message
 def on_message_voice(message, sender_id, receiver_id):
     bot.send_voice(receiver_id, message.voice.file_id)
 
 
 @bot.message_handler(content_types=['sticker'])
-@check_partner
+@handle_message
 def on_message_sticker(message, sender_id, receiver_id):
     bot.send_sticker(receiver_id, message.sticker.file_id)
 
 
 @bot.message_handler(content_types=['audio'])
-@check_partner
+@handle_message
 def on_message_audio(message, sender_id, receiver_id):
     bot.send_audio(receiver_id, message.audio.file_id)
 
 
 @bot.message_handler(content_types=['photo'])
-@check_partner
+@handle_message
 def on_message_photo(message, sender_id, receiver_id):
     bot.send_photo(receiver_id, message.photo[-1].file_id)
 
 
 @bot.message_handler(content_types=['video'])
-@check_partner
+@handle_message
 def on_message_video(message, sender_id, receiver_id):
     bot.send_video(receiver_id, message.video.file_id)
 
 
 @bot.message_handler(content_types=['video_note'])
-@check_partner
+@handle_message
 def on_message_video_note(message, sender_id, receiver_id):
     bot.send_video_note(receiver_id, message.video_note.file_id)
 
 
 @bot.message_handler(content_types=['document'])
-@check_partner
+@handle_message
 def on_message_document(message, sender_id, receiver_id):
     bot.send_document(receiver_id, message.document.file_id)
 

@@ -37,14 +37,25 @@ class DBConnecter:
         self.engine = sa.create_engine(DB_URL)
         self.DBSession = sessionmaker(bind=self.engine)
 
-    def create_user(self, id, username, gender, preference):
+    def create_user(self, user_id, username, gender, preference):
         user = UserT(
-            id=id,
+            id=user_id,
             username=username,
             gender=gender,
             preference=preference
         )
         self._store(user)
+
+    def update_user(self, user_id, preference):
+        session = self.DBSession()
+        try:
+            session.query(UserT).filter(UserT.id == user_id).update({'preference': preference})
+            session.commit()
+        except:
+            session.rollback()
+            raise
+        finally:
+            session.close()
 
     def create_chat(self, user1, user2):
         user1, user2 = sorted([user1, user2])
