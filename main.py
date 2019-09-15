@@ -61,27 +61,21 @@ def command_create(message):
 @bot.message_handler(commands=['new'])
 def command_new(message):
     sender_id = message.chat.id
+    user = manager.users.get(sender_id)
+    if user is None:
+        bot.send_message(sender_id, 'Сначала создайте пользователя')
+        return
+
     if manager.pairs.get(sender_id) is not None:
         bot.send_message(sender_id, 'Вы уже в диалоге!')
         return
 
-    queue = manager.queue
-    if sender_id in queue:
+    if sender_id in manager.queue[user.queue_key]:
         bot.send_message(sender_id, 'Поиск уже идет')
         return
 
-    for id in queue:
-        manager.queue.remove(id)
-        manager.pairs[id] = sender_id
-        manager.pairs[sender_id] = id
-        bot.send_message(sender_id, 'Пара найдена! Вы общаетесь с {}'.format(id))
-        bot.send_message(id, 'Пара найдена! Вы общаетесь с {}'.format(sender_id))
-        db_conn.create_chat(sender_id, id)
-        break
-    else:
-        bot.send_message(sender_id, 'Ожидайте')
-        print('User {} is waiting'.format(sender_id))
-        manager.queue.add(sender_id)
+    bot.send_message(sender_id, 'Ожидайте')
+    manager.queue[user.queue_key].append(sender_id)
 
 
 @bot.message_handler(commands=['stop'])
@@ -176,5 +170,5 @@ def on_message_document(message, sender_id, receiver_id):
 if __name__ == '__main__':
     print("START")
     db_conn = DBConnecter()
-    manager = Manager(db_conn)
+    manager = Manager(db_conn, bot)
     bot.polling(none_stop=True)
