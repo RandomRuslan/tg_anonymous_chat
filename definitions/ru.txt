@@ -1,0 +1,17 @@
+accept.done.user=Пользователь создан.\nПол: {gender}\nПредпочтения: {preference}
+accept.done.preference=Предпочтения изменены: {preference}
+accept.start.chat=Пара найдена, чат начат
+accept.start.search=Ожидайте
+accept.stop.search=Поиск пары остановлен
+accept.stop.chat=Диалог окончен. Для начала нового диалога используйте команду /new
+refuse.user_is_created=Пользователь уже создан
+refuse.lack.user=Сначала создайте пользователя. Укажите ваш пол и предпочтения.\nКоманда: /create м/ж м/ж/мж
+refuse.lack.gender=Необходимо указать ваш пол
+refuse.lack.preference=Необходимо указать ваши предпочтения
+refuse.incorrect_gender=Пол указан неверно
+refuse.already.chat=Вы уже в диалоге!
+refuse.already.search=Поиск уже идет
+info.welcome=Добро пожаловать!\nПеред использованием бота обязательно прочтите инструкцию и предостережения, вызвав комманду /help
+info.helper=Текст helper
+info.command_new=Начните диалог командой /new
+abrupt.chat_is_interrupted=Ваш собеседник прервал диалог. Для начала нового диалога используйте команду /new

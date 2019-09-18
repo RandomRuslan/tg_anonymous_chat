@@ -5,6 +5,7 @@ from time import time
 from constants import TOKEN
 from ac_db import DBConnecter
 from ac_ram import Manager
+from ac_resources import Definitions
 
 bot = telebot.TeleBot(TOKEN)
 
@@ -13,7 +14,7 @@ def check_user(func):
     def wrapper(message):
         sender_id = message.chat.id
         if manager.users.get(sender_id) is None:
-            bot.send_message(sender_id, 'Сначала создайте пользователя. Укажите ваш пол и предпочтения.\nКоманда: /create м/ж м/ж/мж')
+            bot.send_message(sender_id, definitions.get_text('refuse.lack.user'))
             return
 
         func(message)
@@ -23,13 +24,13 @@ def check_user(func):
 
 @bot.message_handler(commands=['start'])
 def command_start(message):
-    text = 'Добро пожаловать!\nПеред использованием бота обязательно прочтите инструкцию и предостережения, вызвав комманду /help'
+    text = definitions.get_text('info.welcome')
     bot.send_message(message.chat.id, text)
 
 
 @bot.message_handler(commands=['help'])
 def command_help(message):
-    text = 'Тыры-пыры helper'
+    text = definitions.get_text('info.helper')
     bot.send_message(message.chat.id, text)
 
 
@@ -37,12 +38,12 @@ def command_help(message):
 def command_create(message):
     sender_id = message.chat.id
     if manager.users.get(sender_id) is not None:
-        bot.send_message(sender_id, 'Пользователь уже создан')
+        bot.send_message(sender_id, definitions.get_text('refuse.user_is_created'))
         return
 
     text = message.text.split()
     if len(text) < 2:
-        bot.send_message(sender_id, 'Необходимо указать ваш пол')
+        bot.send_message(sender_id, definitions.get_text('refuse.lack.gender'))
         return
 
     gender = text[1]
@@ -51,7 +52,7 @@ def command_create(message):
     elif gender.lower() in ['ж', 'f']:
         gender = 'f'
     else:
-        bot.send_message(sender_id, 'Пол указан неверно')
+        bot.send_message(sender_id, definitions.get_text('refuse.incorrect_gender'))
         return
 
     if len(text) > 2:
@@ -66,8 +67,7 @@ def command_create(message):
         preference = 'b'
 
     manager.create_user(sender_id, message.chat.username, gender, preference)
-    bot.send_message(sender_id, 'Создан пользователь:\nпол - {gender}\nпредпочтения - {preference}'
-                     .format(gender=gender, preference=preference))
+    bot.send_message(sender_id, definitions.get_text('accept.done.user', gender=gender, preference=preference))
 
 
 @bot.message_handler(commands=['prefer'])
@@ -76,7 +76,7 @@ def command_prefer(message):
     sender_id = message.chat.id
     text = message.text.split()
     if len(text) < 2:
-        bot.send_message(sender_id, 'Необходимо указать ваши предпочтения')
+        bot.send_message(sender_id, definitions.get_text('refuse.lack.preference'))
         return
 
     preference = text[1]
@@ -88,7 +88,7 @@ def command_prefer(message):
         preference = 'b'
 
     manager.update_user(sender_id, preference)
-    bot.send_message(sender_id, 'Предпочтения изменены: {preference}'.format(preference=preference))
+    bot.send_message(sender_id, definitions.get_text('accept.done.preference', preference=preference))
 
 
 @bot.message_handler(commands=['new'])
@@ -98,14 +98,14 @@ def command_new(message):
     user = manager.users[sender_id]
 
     if manager.pairs.get(sender_id) is not None:
-        bot.send_message(sender_id, 'Вы уже в диалоге!')
+        bot.send_message(sender_id, definitions.get_text('refuse.already.chat'))
         return
 
     if sender_id in manager.queue[user.queue_key]:
-        bot.send_message(sender_id, 'Поиск уже идет')
+        bot.send_message(sender_id, definitions.get_text('refuse.already.search'))
         return
 
-    bot.send_message(sender_id, 'Ожидайте')
+    bot.send_message(sender_id, definitions.get_text('accept.start.search'))
     manager.queue[user.queue_key].append(sender_id)
 
 
@@ -115,18 +115,18 @@ def command_stop(message):
     sender_id = message.chat.id
     if sender_id in manager.queue:
         manager.queue.remove(sender_id)
-        bot.send_message(sender_id, 'Поиск пары остановлен')
+        bot.send_message(sender_id, definitions.get_text('accept.stop.search'))
         return
 
     if manager.pairs.get(sender_id) is None:
-        bot.send_message(sender_id, 'Начните диалог коммандой /new')
+        bot.send_message(sender_id, definitions.get_text('info.command_new'))
         return
 
     receiver_id = manager.pairs.pop(sender_id)
     manager.pairs.pop(receiver_id)
 
-    bot.send_message(sender_id, 'Диалог окончен. Для начала нового диалога используйте команду /new')
-    bot.send_message(receiver_id, 'Ваш собеседник прервал диалог. Для начала нового диалога используйте команду /new')
+    bot.send_message(sender_id, definitions.get_text('accept.stop.chat'))
+    bot.send_message(receiver_id, definitions.get_text('abrupt.chat_is_interrupted'))
     db_conn.close_chat(sender_id, receiver_id)
 
 
@@ -135,10 +135,10 @@ def handle_message(func):
         sender_id = message.chat.id
         if manager.pairs.get(sender_id) is None:
             if sender_id in manager.queue:
-                bot.send_message(sender_id, 'Все еще ожидайте')
+                bot.send_message(sender_id, definitions.get_text('refuse.already.search'))
                 return
             else:
-                bot.send_message(sender_id, 'Начните диалог коммандой /new')
+                bot.send_message(sender_id, definitions.get_text('info.command_new'))
                 return
 
         receiver_id = manager.pairs[sender_id]
@@ -200,7 +200,8 @@ def on_message_document(message, sender_id, receiver_id):
 
 
 if __name__ == '__main__':
-    print("START")
+    print('START')
     db_conn = DBConnecter()
     manager = Manager(db_conn, bot)
+    definitions = Definitions()
     bot.polling(none_stop=True)
