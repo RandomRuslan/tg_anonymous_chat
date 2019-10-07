@@ -1,23 +1,65 @@
 # -*- coding: utf-8 -*-
-import telebot
+from telebot import TeleBot, types
 from time import time
 
 from constants import TOKEN
 from ac_db import DBConnecter
-from ac_ram import Manager
+from ac_manage import Manager
 from ac_resources import Definitions
+from ac_repeater import Matcher, Cleaner
 
-bot = telebot.TeleBot(TOKEN)
+bot = TeleBot(TOKEN)
+
+
+def show_gender_keyboard(sender_id):
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    markup.add(
+        types.KeyboardButton(definitions.get_text('button.f')),
+        types.KeyboardButton(definitions.get_text('button.m'))
+    )
+
+    bot.send_message(sender_id, definitions.get_text('info.choose_gender'), reply_markup=markup)
+
+
+def try_to_create_user(message):
+    sender_id = message.chat.id
+    text = message.text or ''
+    text = text.strip().lower()
+
+    if not text:
+        bot.send_message(sender_id, definitions.get_text('refuse.lack.user'))
+        show_gender_keyboard(sender_id)
+        return
+
+    if text in ['м', 'm', definitions.get_text('button.m').strip().lower()]:
+        gender = 'm'
+        preference = 'f'
+    elif text in ['ж', 'f', definitions.get_text('button.f').strip().lower()]:
+        gender = 'f'
+        preference = 'm'
+    else:
+        show_gender_keyboard(sender_id)
+        return
+
+    manager.create_user(sender_id, message.chat.username, gender, preference)
+
+    markup = types.ReplyKeyboardRemove(selective=False)
+    text = definitions.get_text('accept.done.user', gender=gender, preference=preference)
+    bot.send_message(sender_id, text, reply_markup=markup)
+    bot.send_message(sender_id, definitions.get_text('info.choose_preference'))
 
 
 def check_user(func):
     def wrapper(message):
         sender_id = message.chat.id
-        if manager.users.get(sender_id) is None:
-            bot.send_message(sender_id, definitions.get_text('refuse.lack.user'))
+        user = manager.get_user_by_id(sender_id)
+        if not user:
+            try_to_create_user(message)
             return
 
         func(message)
+
+        user.last_activity_ts = int(time())
 
     return wrapper
 
@@ -26,48 +68,13 @@ def check_user(func):
 def command_start(message):
     text = definitions.get_text('info.welcome')
     bot.send_message(message.chat.id, text)
+    show_gender_keyboard(message.chat.id)
 
 
 @bot.message_handler(commands=['help'])
 def command_help(message):
     text = definitions.get_text('info.helper')
     bot.send_message(message.chat.id, text)
-
-
-@bot.message_handler(commands=['create'])
-def command_create(message):
-    sender_id = message.chat.id
-    if manager.users.get(sender_id) is not None:
-        bot.send_message(sender_id, definitions.get_text('refuse.user_is_created'))
-        return
-
-    text = message.text.split()
-    if len(text) < 2:
-        bot.send_message(sender_id, definitions.get_text('refuse.lack.gender'))
-        return
-
-    gender = text[1]
-    if gender.lower() in ['м', 'm']:
-        gender = 'm'
-    elif gender.lower() in ['ж', 'f']:
-        gender = 'f'
-    else:
-        bot.send_message(sender_id, definitions.get_text('refuse.incorrect_gender'))
-        return
-
-    if len(text) > 2:
-        preference = text[2]
-        if preference in ['м', 'm']:
-            preference = 'm'
-        elif preference in ['ж', 'f']:
-            preference = 'f'
-        else:
-            preference = 'b'
-    else:
-        preference = 'b'
-
-    manager.create_user(sender_id, message.chat.username, gender, preference)
-    bot.send_message(sender_id, definitions.get_text('accept.done.user', gender=gender, preference=preference))
 
 
 @bot.message_handler(commands=['prefer'])
@@ -133,6 +140,11 @@ def command_stop(message):
 def handle_message(func):
     def wrapper(message):
         sender_id = message.chat.id
+        user = manager.get_user_by_id(sender_id)
+        if not user:
+            try_to_create_user(message)
+            return
+
         if manager.pairs.get(sender_id) is None:
             if sender_id in manager.queue:
                 bot.send_message(sender_id, definitions.get_text('refuse.already.search'))
@@ -204,4 +216,6 @@ if __name__ == '__main__':
     db_conn = DBConnecter()
     manager = Manager(db_conn, bot)
     definitions = Definitions()
+    matcher = Matcher(manager)
+    cleaner = Cleaner(manager, bot)
     bot.polling(none_stop=True)

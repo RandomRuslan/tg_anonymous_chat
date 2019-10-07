@@ -33,6 +33,7 @@ class ChatT(Base):
 
 
 class DBConnecter:
+
     def __init__(self):
         self.engine = sa.create_engine(DB_URL)
         self.DBSession = sessionmaker(bind=self.engine)
@@ -95,6 +96,13 @@ class DBConnecter:
             raise
         finally:
             session.close()
+
+    def load_user_by_id(self, user_id):
+        session = self.DBSession()
+        user = session.query(UserT).filter(UserT.id == user_id).first()
+        session.close()
+
+        return user
 
     def load_users(self):
         session = self.DBSession()
