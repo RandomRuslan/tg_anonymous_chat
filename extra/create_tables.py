@@ -9,7 +9,9 @@ db.execute('''
         id INTEGER PRIMARY KEY,
         username VARCHAR(64) UNIQUE NOT NULL,
         gender VARCHAR(2) NOT NULL, 
-        preference VARCHAR(2)
+        preference VARCHAR(2),
+        prev_chats TEXT,
+        state VARCHAR(32) 
     );
 ''')
 

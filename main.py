@@ -4,7 +4,7 @@ from time import time
 
 from constants import TOKEN
 from ac_db import DBConnecter
-from ac_manage import Manager
+from ac_manage import Manager, User
 from ac_resources import Definitions
 from ac_repeater import Matcher, Cleaner
 
@@ -57,9 +57,8 @@ def check_user(func):
             try_to_create_user(message)
             return
 
-        func(message)
-
         user.last_activity_ts = int(time())
+        func(message)
 
     return wrapper
 
@@ -94,7 +93,7 @@ def command_prefer(message):
     else:
         preference = 'b'
 
-    manager.update_user(sender_id, preference)
+    manager.update_user(sender_id, {'preference': preference})
     bot.send_message(sender_id, definitions.get_text('accept.done.preference', preference=preference))
 
 
@@ -104,37 +103,41 @@ def command_new(message):
     sender_id = message.chat.id
     user = manager.users[sender_id]
 
-    if manager.pairs.get(sender_id) is not None:
+    if user.state == User.State.CHAT:
         bot.send_message(sender_id, definitions.get_text('refuse.already.chat'))
         return
 
-    if sender_id in manager.queue[user.queue_key]:
+    if user.state == User.State.QUEUE:
         bot.send_message(sender_id, definitions.get_text('refuse.already.search'))
         return
 
     bot.send_message(sender_id, definitions.get_text('accept.start.search'))
     manager.queue[user.queue_key].append(sender_id)
+    manager.update_user(sender_id, {'state': User.State.QUEUE})
 
 
 @bot.message_handler(commands=['stop'])
 @check_user
 def command_stop(message):
     sender_id = message.chat.id
-    if sender_id in manager.queue:
-        manager.queue.remove(sender_id)
+    user = manager.users[sender_id]
+
+    if user.state == User.State.QUEUE:
+        manager.queue[user.queue_key].remove(sender_id)
+        manager.update_user(sender_id, {'state': None})
         bot.send_message(sender_id, definitions.get_text('accept.stop.search'))
         return
 
-    if manager.pairs.get(sender_id) is None:
+    if user.state is None:
         bot.send_message(sender_id, definitions.get_text('info.command_new'))
         return
 
-    receiver_id = manager.pairs.pop(sender_id)
-    manager.pairs.pop(receiver_id)
+    receiver_id = manager.pairs[sender_id]
 
     bot.send_message(sender_id, definitions.get_text('accept.stop.chat'))
     bot.send_message(receiver_id, definitions.get_text('abrupt.chat_is_interrupted'))
-    db_conn.close_chat(sender_id, receiver_id)
+
+    manager.close_chat(sender_id, receiver_id)
 
 
 def handle_message(func):
@@ -145,13 +148,13 @@ def handle_message(func):
             try_to_create_user(message)
             return
 
-        if manager.pairs.get(sender_id) is None:
-            if sender_id in manager.queue:
-                bot.send_message(sender_id, definitions.get_text('refuse.already.search'))
-                return
-            else:
-                bot.send_message(sender_id, definitions.get_text('info.command_new'))
-                return
+        if user.state == User.State.QUEUE:
+            bot.send_message(sender_id, definitions.get_text('refuse.already.search'))
+            return
+
+        if user.state is None:
+            bot.send_message(sender_id, definitions.get_text('info.command_new'))
+            return
 
         receiver_id = manager.pairs[sender_id]
 

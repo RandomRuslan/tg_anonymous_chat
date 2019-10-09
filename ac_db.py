@@ -1,3 +1,4 @@
+import json
 from datetime import datetime
 import sqlalchemy as sa
 from sqlalchemy.orm import sessionmaker
@@ -16,6 +17,8 @@ class UserT(Base):
     username = sa.Column(sa.VARCHAR(64), nullable=False)
     gender = sa.Column(sa.VARCHAR(2))
     preference = sa.Column(sa.VARCHAR(2))
+    prev_chats = sa.Column(sa.TEXT)
+    state = sa.Column(sa.VARCHAR(32), default=None)
 
 
 class ChatT(Base):
@@ -47,10 +50,10 @@ class DBConnecter:
         )
         self._store(user)
 
-    def update_user(self, user_id, preference):
+    def update_user(self, user_id, updated_data):
         session = self.DBSession()
         try:
-            session.query(UserT).filter(UserT.id == user_id).update({'preference': preference})
+            session.query(UserT).filter(UserT.id == user_id).update(updated_data)
             session.commit()
         except:
             session.rollback()
@@ -99,18 +102,28 @@ class DBConnecter:
 
     def load_user_by_id(self, user_id):
         session = self.DBSession()
-        user = session.query(UserT).filter(UserT.id == user_id).first()
+        row = session.query(UserT).filter(UserT.id == user_id).first()
         session.close()
 
-        return user
+        return DBConnecter._user_row_to_dict(row) if row else None
 
     def load_users(self):
         session = self.DBSession()
-        rows = session.query(UserT).all()
+        rows = session.query(UserT).filter(UserT.state != None).all()
         session.close()
 
         for row in rows:
-            yield {'id': row.id, 'gender': row.gender, 'preference': row.preference}
+            yield DBConnecter._user_row_to_dict(row)
+
+    @staticmethod
+    def _user_row_to_dict(user):
+        return {
+            'id': user.id,
+            'gender': user.gender,
+            'preference': user.preference,
+            'prev_chats': json.loads(user.prev_chats) if user.prev_chats else [],
+            'state': user.state
+        }
 
     def load_pairs(self):
         session = self.DBSession()
