@@ -2,8 +2,6 @@ import random
 from time import time
 from threading import Timer
 
-from ac_manage import User
-
 
 class Repeater:
 
@@ -71,21 +69,14 @@ class Matcher:
         while user_set_for_choice:
             random_user_id = random.sample(user_set_for_choice, 1)[0]
             if random_user_id != user_id:
-                if user_id not in self.manager.users[random_user_id].prev_chats and \
-                        random_user_id not in self.manager.users[user_id].prev_chats:
+                if user_id not in self.manager.users[random_user_id].prev_partners and \
+                        random_user_id not in self.manager.users[user_id].prev_partners:
 
                     self.manager.bot.send_message(user_id, 'Пара найдена. Ваш партнер: ' + str(random_user_id))
                     self.manager.bot.send_message(random_user_id, 'Пара найдена. Ваш партнер: ' + str(user_id))
 
                     self.manager.pairs[user_id] = random_user_id
                     self.manager.pairs[random_user_id] = user_id
-
-                    self.manager.users[user_id].prev_chats.append(random_user_id)
-                    self.manager.users[random_user_id].prev_chats.append(user_id)
-                    if len(self.manager.users[user_id].prev_chats) > User.MAX_PREV_CHATS:
-                        self.manager.users[user_id].prev_chats.pop(0)
-                    if len(self.manager.users[random_user_id].prev_chats) > User.MAX_PREV_CHATS:
-                        self.manager.users[random_user_id].prev_chats.pop(0)
 
                     processed_queue.remove(user_id)
                     for queue in queues:
@@ -94,12 +85,12 @@ class Matcher:
                             break
 
                     self.manager.update_user(user_id, {
-                        'prev_chats': self.manager.users[user_id].prev_chats,
-                        'state': User.State.CHAT
+                        'prev_partners': self.manager.users[user_id].prev_partners + [random_user_id],
+                        'partner': random_user_id
                     })
                     self.manager.update_user(random_user_id, {
-                        'prev_chats': self.manager.users[random_user_id].prev_chats,
-                        'state': User.State.CHAT
+                        'prev_partners': self.manager.users[random_user_id].prev_partners + [user_id],
+                        'partner': user_id
                     })
 
                     return
@@ -125,12 +116,12 @@ class Cleaner:
         users = list(self.manager.users)
         for user_id in users:
             user = self.manager.users[user_id]
-            if user.state != User.State.CHAT and now - user.last_activity_ts > self.ALLOWED_INACTIVITY_PERIOD:
-                if user.state == User.State.CHAT:
+            if not user.partner and now - user.last_activity_ts > self.ALLOWED_INACTIVITY_PERIOD:
+                if user.partner == 0:
                     text = 'К сожалению, поиск прерван. Для возобновления поиска используйте команду /new'
                     self.bot.send_message(user_id, text)
                     self.manager.queue[user.queue_key].remove(user_id)
-                    self.manager.update_user(user_id, {'state': None})
+                    self.manager.update_user(user_id, {'partner': None})
 
                 del self.manager.users[user_id]
 

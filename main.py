@@ -103,17 +103,17 @@ def command_new(message):
     sender_id = message.chat.id
     user = manager.users[sender_id]
 
-    if user.state == User.State.CHAT:
+    if user.partner:
         bot.send_message(sender_id, definitions.get_text('refuse.already.chat'))
         return
 
-    if user.state == User.State.QUEUE:
+    if user.partner == 0:
         bot.send_message(sender_id, definitions.get_text('refuse.already.search'))
         return
 
     bot.send_message(sender_id, definitions.get_text('accept.start.search'))
     manager.queue[user.queue_key].append(sender_id)
-    manager.update_user(sender_id, {'state': User.State.QUEUE})
+    manager.update_user(sender_id, {'partner': 0})
 
 
 @bot.message_handler(commands=['stop'])
@@ -122,13 +122,13 @@ def command_stop(message):
     sender_id = message.chat.id
     user = manager.users[sender_id]
 
-    if user.state == User.State.QUEUE:
+    if user.partner == 0:
         manager.queue[user.queue_key].remove(sender_id)
-        manager.update_user(sender_id, {'state': None})
+        manager.update_user(sender_id, {'partner': None})
         bot.send_message(sender_id, definitions.get_text('accept.stop.search'))
         return
 
-    if user.state is None:
+    if user.partner is None:
         bot.send_message(sender_id, definitions.get_text('info.command_new'))
         return
 
@@ -148,11 +148,11 @@ def handle_message(func):
             try_to_create_user(message)
             return
 
-        if user.state == User.State.QUEUE:
+        if user.partner == 0:
             bot.send_message(sender_id, definitions.get_text('refuse.already.search'))
             return
 
-        if user.state is None:
+        if user.partner is None:
             bot.send_message(sender_id, definitions.get_text('info.command_new'))
             return
 

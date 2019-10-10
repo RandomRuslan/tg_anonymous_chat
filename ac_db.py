@@ -17,22 +17,22 @@ class UserT(Base):
     username = sa.Column(sa.VARCHAR(64), nullable=False)
     gender = sa.Column(sa.VARCHAR(2))
     preference = sa.Column(sa.VARCHAR(2))
-    prev_chats = sa.Column(sa.TEXT)
-    state = sa.Column(sa.VARCHAR(32), default=None)
+    prev_partners = sa.Column(sa.TEXT)
+    partner = sa.Column(sa.INT, default=None)   # 0 - in queue
 
 
-class ChatT(Base):
-    """
-    userid1 < userid2
-    """
-
-    __tablename__ = 'chats'
-
-    id = sa.Column(sa.INT, primary_key=True, autoincrement=True)
-    userid1 = sa.Column(sa.INT, nullable=False)
-    userid2 = sa.Column(sa.INT, nullable=False)
-    startts = sa.Column(sa.DATETIME)
-    finishts = sa.Column(sa.DATETIME, default=None)
+# class ChatT(Base):
+#     """
+#     userid1 < userid2
+#     """
+#
+#     __tablename__ = 'chats'
+#
+#     id = sa.Column(sa.INT, primary_key=True, autoincrement=True)
+#     userid1 = sa.Column(sa.INT, nullable=False)
+#     userid2 = sa.Column(sa.INT, nullable=False)
+#     startts = sa.Column(sa.DATETIME)
+#     finishts = sa.Column(sa.DATETIME, default=None)
 
 
 class DBConnecter:
@@ -61,33 +61,33 @@ class DBConnecter:
         finally:
             session.close()
 
-    def create_chat(self, user1, user2):
-        user1, user2 = sorted([user1, user2])
-        start_ts = datetime.now().replace(microsecond=0)
+    # def create_chat(self, user1, user2):
+    #     user1, user2 = sorted([user1, user2])
+    #     start_ts = datetime.now().replace(microsecond=0)
+    #
+    #     chat = ChatT(
+    #         userid1=user1,
+    #         userid2=user2,
+    #         startts=start_ts
+    #     )
+    #     self._store(chat)
 
-        chat = ChatT(
-            userid1=user1,
-            userid2=user2,
-            startts=start_ts
-        )
-        self._store(chat)
-
-    def close_chat(self, user1, user2):
-        user1, user2 = sorted([user1, user2])
-        finish_ts = datetime.now().replace(microsecond=0)
-
-        session = self.DBSession()
-        try:
-            session.query(ChatT).\
-                filter(sa.and_(ChatT.userid1 == user1, ChatT.userid2 == user2)).\
-                update({'finishts': finish_ts})
-
-            session.commit()
-        except:
-            session.rollback()
-            raise
-        finally:
-            session.close()
+    # def close_chat(self, user1, user2):
+    #     user1, user2 = sorted([user1, user2])
+    #     finish_ts = datetime.now().replace(microsecond=0)
+    #
+    #     session = self.DBSession()
+    #     try:
+    #         session.query(ChatT).\
+    #             filter(sa.and_(ChatT.userid1 == user1, ChatT.userid2 == user2)).\
+    #             update({'finishts': finish_ts})
+    #
+    #         session.commit()
+    #     except:
+    #         session.rollback()
+    #         raise
+    #     finally:
+    #         session.close()
 
     def _store(self, obj):
         session = self.DBSession()
@@ -109,7 +109,7 @@ class DBConnecter:
 
     def load_users(self):
         session = self.DBSession()
-        rows = session.query(UserT).filter(UserT.state != None).all()
+        rows = session.query(UserT).filter(UserT.partner != None).all()
         session.close()
 
         for row in rows:
@@ -121,14 +121,14 @@ class DBConnecter:
             'id': user.id,
             'gender': user.gender,
             'preference': user.preference,
-            'prev_chats': json.loads(user.prev_chats) if user.prev_chats else [],
-            'state': user.state
+            'prev_partners': json.loads(user.prev_partners) if user.prev_partners else [],
+            'partner': user.partner
         }
 
-    def load_pairs(self):
-        session = self.DBSession()
-        rows = session.query(ChatT).filter(ChatT.finishts == None).all()
-        session.close()
-
-        for row in rows:
-            yield (row.userid1, row.userid2)
+    # def load_pairs(self):
+    #     session = self.DBSession()
+    #     rows = session.query(ChatT).filter(ChatT.finishts == None).all()
+    #     session.close()
+    #
+    #     for row in rows:
+    #         yield (row.userid1, row.userid2)
