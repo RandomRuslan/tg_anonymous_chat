@@ -80,6 +80,12 @@ def command_help(message):
 @check_user
 def command_prefer(message):
     sender_id = message.chat.id
+
+    user = manager.users[sender_id]
+    if user.partner is not None:
+        bot.send_message(sender_id, definitions.get_text('refuse.preference_during_processing'))
+        return
+
     text = message.text.split()
     if len(text) < 2:
         bot.send_message(sender_id, definitions.get_text('refuse.lack.preference'))

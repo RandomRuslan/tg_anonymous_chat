@@ -10,6 +10,7 @@ refuse.lack.preference=Необходимо указать ваши предпо
 refuse.incorrect_gender=Пол указан неверно
 refuse.already.chat=Вы уже в диалоге!
 refuse.already.search=Поиск уже идет
+refuse.preference_during_processing=Нельзя сменить предпочтения в диалоге или его поиске
 info.welcome=Добро пожаловать!\nПеред использованием бота обязательно прочтите инструкцию и предостережения, вызвав комманду /help
 info.helper=Текст helper
 info.choose_preference=Для смены предпочтений используйте команду:\n/prefer м/ж/мж

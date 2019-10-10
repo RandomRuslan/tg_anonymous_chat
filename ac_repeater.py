@@ -72,8 +72,8 @@ class Matcher:
                 if user_id not in self.manager.users[random_user_id].prev_partners and \
                         random_user_id not in self.manager.users[user_id].prev_partners:
 
-                    self.manager.bot.send_message(user_id, 'Пара найдена. Ваш партнер: ' + str(random_user_id))
-                    self.manager.bot.send_message(random_user_id, 'Пара найдена. Ваш партнер: ' + str(user_id))
+                    self.manager.bot.send_message(user_id, 'Пара найдена. Приятного общения')
+                    self.manager.bot.send_message(random_user_id, 'Пара найдена. Приятного общения')
 
                     self.manager.pairs[user_id] = random_user_id
                     self.manager.pairs[random_user_id] = user_id
