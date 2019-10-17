@@ -1,6 +1,7 @@
+import logging
 import random
-from time import time
 from threading import Timer
+from time import time
 
 
 class Repeater:
@@ -29,8 +30,6 @@ class Matcher:
         Repeater(5, self.match_pairs).start()
 
     def match_pairs(self):
-        print('match')
-
         processed_queue = list(self.manager.queue['ff'])
         for user_id in processed_queue:
             if user_id in self.manager.queue['ff']:
@@ -60,6 +59,10 @@ class Matcher:
         for user_id in processed_queue:
             if user_id in self.manager.queue['mb']:
                 self._do_match(user_id, self.manager.queue['mb'], [self.manager.queue['mb']])
+
+        logging.info('Queue after matching')
+        for key, value in self.manager.queue.items():
+            logging.info(key + ': ' + str(value))
 
     def _do_match(self, user_id, processed_queue, queues):
         user_set_for_choice = set()
@@ -93,6 +96,7 @@ class Matcher:
                         'partner': user_id
                     })
 
+                    logging.warning('Chat is started: {user1} {user2}', user1=user_id, user2=random_user_id)
                     return
 
             user_set_for_choice.remove(random_user_id)
@@ -109,8 +113,7 @@ class Cleaner:
         Repeater(30 * 60, self.clean_inactive_users).start()
 
     def clean_inactive_users(self):
-        print('clean users')
-        print('Users before:', self.manager.users.keys())
+        logging.info('Users before cleaning: {users}', users=str(self.manager.users.keys()))
 
         now = int(time())
         users = list(self.manager.users)
@@ -125,4 +128,4 @@ class Cleaner:
 
                 del self.manager.users[user_id]
 
-        print('Users after:', self.manager.users.keys())
+        logging.info('Users after cleaning: {users}', users=str(self.manager.users.keys()))

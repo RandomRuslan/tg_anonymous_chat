@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
+
+import logging
 from telebot import TeleBot, types
 from time import time
 
-from constants import TOKEN
 from ac_db import DBConnecter
-from ac_manage import Manager, User
-from ac_resources import Definitions
+from ac_manage import Manager
 from ac_repeater import Matcher, Cleaner
+from ac_resources import Definitions
+from constants import LOG_FILE, LOG_LEVEL, TOKEN
 
 bot = TeleBot(TOKEN)
 
@@ -222,9 +224,19 @@ def on_message_document(message, sender_id, receiver_id):
 
 if __name__ == '__main__':
     print('START')
+    logging.basicConfig(
+        filename=LOG_FILE,
+        level=LOG_LEVEL,
+        format=u'%(levelname)s [%(asctime)s %(funcName)s:%(lineno)d] %(message)s',
+        datefmt='%Y%m%d %H:%M:%S'
+    )
+    logging.warning('START')
+
     db_conn = DBConnecter()
     manager = Manager(db_conn, bot)
+
     definitions = Definitions()
     matcher = Matcher(manager)
     cleaner = Cleaner(manager, bot)
+
     bot.polling(none_stop=True)

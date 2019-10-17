@@ -1,6 +1,7 @@
-import json
-from time import time
 from copy import deepcopy
+import json
+import logging
+from time import time
 
 
 class Manager:
@@ -18,14 +19,15 @@ class Manager:
         }
         self.arrange_users()
 
-        print(self.users.keys())
-        print(self.pairs)
-        for q in self.queue.values():
-            print(q)
+        logging.info('users: ' + str(self.users.keys()))
+        logging.info('pairs: ' + str(self.pairs))
+        for key, value in self.queue.items():
+            logging.info(key + ': ' + str(value))
 
     def create_user(self, user_id, username, gender, preference):
         self.db_conn.create_user(user_id, username, gender, preference)
         self.users[user_id] = User(user_id, gender, preference)
+        logging.warning('User {user} is created', user=user_id)
         return self.users[user_id]
 
     def update_user(self, user_id, updated_data):
@@ -44,6 +46,7 @@ class Manager:
                     updated_data[key] = json.dumps(updated_data[key]) if updated_data[key] else None
 
         if updated_data:
+            logging.warning('User {user} is updated: {data}', user=user_id, data=str(updated_data))
             self.db_conn.update_user(user_id, updated_data)
 
     def load_users(self):
@@ -81,12 +84,14 @@ class Manager:
             elif user.partner:
                 self.pairs[user.id] = user.partner
 
-    def close_chat(self, userid1, userid2):
-        self.pairs.pop(userid1)
-        self.pairs.pop(userid2)
+    def close_chat(self, user1, user2):
+        self.pairs.pop(user1)
+        self.pairs.pop(user2)
 
-        self.update_user(userid1, {'partner': None})
-        self.update_user(userid2, {'partner': None})
+        self.update_user(user1, {'partner': None})
+        self.update_user(user2, {'partner': None})
+
+        logging.warning('Chat is finished: {user1} {user2}', user1=user1, user2=user2)
 
         # self.db_conn.close_chat(userid1, userid2)
 

@@ -1,2 +1,5 @@
 TOKEN = ''
 DB_URL = ''
+
+LOG_FILE = ''
+LOG_LEVEL = 20
