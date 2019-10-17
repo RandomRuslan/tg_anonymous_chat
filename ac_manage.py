@@ -27,7 +27,7 @@ class Manager:
     def create_user(self, user_id, username, gender, preference):
         self.db_conn.create_user(user_id, username, gender, preference)
         self.users[user_id] = User(user_id, gender, preference)
-        logging.warning('User {user} is created', user=user_id)
+        logging.warning('User {user} is created'.format(user=user_id))
         return self.users[user_id]
 
     def update_user(self, user_id, updated_data):
@@ -46,7 +46,7 @@ class Manager:
                     updated_data[key] = json.dumps(updated_data[key]) if updated_data[key] else None
 
         if updated_data:
-            logging.warning('User {user} is updated: {data}', user=user_id, data=str(updated_data))
+            logging.warning('User {user} is updated: {data}'.format(user=user_id, data=str(updated_data)))
             self.db_conn.update_user(user_id, updated_data)
 
     def load_users(self):
@@ -91,7 +91,7 @@ class Manager:
         self.update_user(user1, {'partner': None})
         self.update_user(user2, {'partner': None})
 
-        logging.warning('Chat is finished: {user1} {user2}', user1=user1, user2=user2)
+        logging.warning('Chat is finished: {user1} {user2}'.format(user1=user1, user2=user2))
 
         # self.db_conn.close_chat(userid1, userid2)
 

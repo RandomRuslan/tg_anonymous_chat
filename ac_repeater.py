@@ -96,7 +96,7 @@ class Matcher:
                         'partner': user_id
                     })
 
-                    logging.warning('Chat is started: {user1} {user2}', user1=user_id, user2=random_user_id)
+                    logging.warning('Chat is started: {user1} {user2}'.format(user1=user_id, user2=random_user_id))
                     return
 
             user_set_for_choice.remove(random_user_id)
@@ -113,7 +113,7 @@ class Cleaner:
         Repeater(30 * 60, self.clean_inactive_users).start()
 
     def clean_inactive_users(self):
-        logging.info('Users before cleaning: {users}', users=str(self.manager.users.keys()))
+        logging.info('Users before cleaning: {users}'.format(users=str(self.manager.users.keys())))
 
         now = int(time())
         users = list(self.manager.users)
@@ -128,4 +128,4 @@ class Cleaner:
 
                 del self.manager.users[user_id]
 
-        logging.info('Users after cleaning: {users}', users=str(self.manager.users.keys()))
+        logging.info('Users after cleaning: {users}'.format(users=str(self.manager.users.keys())))
