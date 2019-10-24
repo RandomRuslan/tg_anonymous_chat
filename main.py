@@ -3,12 +3,13 @@
 import logging
 from telebot import TeleBot, types
 from time import time
+import traceback
 
 from ac_db import DBConnecter
 from ac_manage import Manager
 from ac_repeater import Matcher, Cleaner
 from ac_resources import Definitions
-from constants import LOG_FILE, LOG_LEVEL, TOKEN
+from constants import MONITOR_ID, LOG_FILE, LOG_LEVEL, TOKEN
 
 bot = TeleBot(TOKEN)
 
@@ -60,7 +61,11 @@ def check_user(func):
             return
 
         user.last_activity_ts = int(time())
-        func(message)
+        try:
+            func(message)
+        except:
+            manager.bot.send_message(MONITOR_ID, 'Command exception:\n' + traceback.format_exc())
+            logging.error('Command exception:\n', exc_info=True)
 
     return wrapper
 
@@ -166,7 +171,11 @@ def handle_message(func):
 
         receiver_id = manager.pairs[sender_id]
 
-        func(message, sender_id, receiver_id)
+        try:
+            func(message, sender_id, receiver_id)
+        except:
+            manager.bot.send_message(MONITOR_ID, 'Message exception:\n' + traceback.format_exc())
+            logging.error('Message exception:\n', exc_info=True)
 
         if message.caption:
             bot.send_message(receiver_id, message.caption)

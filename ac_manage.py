@@ -2,6 +2,9 @@ from copy import deepcopy
 import json
 import logging
 from time import time
+import traceback
+
+from constants import MONITOR_ID
 
 
 class Manager:
@@ -25,7 +28,13 @@ class Manager:
             logging.info(key + ': ' + str(value))
 
     def create_user(self, user_id, username, gender, preference):
-        self.db_conn.create_user(user_id, username, gender, preference)
+        try:
+            self.db_conn.create_user(user_id, username, gender, preference)
+        except:
+            self.bot.send_message(MONITOR_ID, 'Creation user exception:\n' + traceback.format_exc())
+            logging.error('Creation user exception', exc_info=True)
+            return
+
         self.users[user_id] = User(user_id, gender, preference)
         logging.warning('User {user} is created'.format(user=user_id))
         return self.users[user_id]
@@ -44,10 +53,16 @@ class Manager:
                         updated_data[key].pop(0)
                     setattr(user, key, updated_data[key])
                     updated_data[key] = json.dumps(updated_data[key]) if updated_data[key] else None
+                else:
+                    setattr(user, key, updated_data[key])
 
         if updated_data:
             logging.warning('User {user} is updated: {data}'.format(user=user_id, data=str(updated_data)))
-            self.db_conn.update_user(user_id, updated_data)
+            try:
+                self.db_conn.update_user(user_id, updated_data)
+            except:
+                self.bot.send_message(MONITOR_ID, 'Update user exception:\n' + traceback.format_exc())
+                logging.error('Update user exception', exc_info=True)
 
     def load_users(self):
         users = {}
@@ -66,7 +81,13 @@ class Manager:
         if self.users.get(user_id):
             return self.users[user_id]
 
-        user = self.db_conn.load_user_by_id(user_id)
+        try:
+            user = self.db_conn.load_user_by_id(user_id)
+        except:
+            self.bot.send_message(MONITOR_ID, 'Loading user exception:\n' + traceback.format_exc())
+            logging.error('Loading user exception', exc_info=True)
+            return
+
         if user:
             self.users[user_id] = User(
                 user['id'],
