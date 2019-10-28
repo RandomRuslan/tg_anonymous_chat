@@ -29,7 +29,7 @@ class Manager:
 
     def create_user(self, user_id, username, gender, preference):
         try:
-            self.db_conn.create_user(user_id, username, gender, preference)
+            self.db_conn.store_user(user_id, username, gender, preference)
         except:
             self.bot.send_message(MONITOR_ID, 'Creation user exception:\n' + traceback.format_exc())
             logging.error('Creation user exception', exc_info=True)
@@ -104,6 +104,13 @@ class Manager:
                 self.queue[user.queue_key].append(user.id)
             elif user.partner:
                 self.pairs[user.id] = user.partner
+
+    def save_message(self, user1, user2, content, kind):
+        try:
+            self.db_conn.store_message(user1, user2, content, kind)
+        except:
+            self.bot.send_message(MONITOR_ID, 'Message store exception:\n' + traceback.format_exc())
+            logging.error('Message store exception', exc_info=True)
 
     def close_chat(self, user1, user2):
         self.pairs.pop(user1)

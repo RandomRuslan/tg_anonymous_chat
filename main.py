@@ -172,13 +172,17 @@ def handle_message(func):
         receiver_id = manager.pairs[sender_id]
 
         try:
-            func(message, sender_id, receiver_id)
+            content = func(message, sender_id, receiver_id)
         except:
             manager.bot.send_message(MONITOR_ID, 'Message exception:\n' + traceback.format_exc())
             logging.error('Message exception:\n', exc_info=True)
+            return
 
         if message.caption:
             bot.send_message(receiver_id, message.caption)
+            manager.save_message(sender_id, receiver_id, message.caption, 'text')
+
+        manager.save_message(sender_id, receiver_id, str(content), message.content_type)
 
     return wrapper
 
@@ -186,49 +190,73 @@ def handle_message(func):
 @bot.message_handler(content_types=['text'])
 @handle_message
 def on_message_text(message, sender_id, receiver_id):
-    bot.send_message(receiver_id, message.text)
+    content = message.text
+    bot.send_message(receiver_id, content)
+
+    return content
 
 
 @bot.message_handler(content_types=['voice'])
 @handle_message
 def on_message_voice(message, sender_id, receiver_id):
-    bot.send_voice(receiver_id, message.voice.file_id)
+    content = message.voice.file_id
+    bot.send_voice(receiver_id, content)
+
+    return content
 
 
 @bot.message_handler(content_types=['sticker'])
 @handle_message
 def on_message_sticker(message, sender_id, receiver_id):
-    bot.send_sticker(receiver_id, message.sticker.file_id)
+    content = message.sticker.file_id
+    bot.send_sticker(receiver_id, content)
+
+    return content
 
 
 @bot.message_handler(content_types=['audio'])
 @handle_message
 def on_message_audio(message, sender_id, receiver_id):
-    bot.send_audio(receiver_id, message.audio.file_id)
+    content = message.audio.file_id
+    bot.send_audio(receiver_id, content)
+
+    return content
 
 
 @bot.message_handler(content_types=['photo'])
 @handle_message
 def on_message_photo(message, sender_id, receiver_id):
-    bot.send_photo(receiver_id, message.photo[-1].file_id)
+    content = message.photo[-1].file_id
+    bot.send_photo(receiver_id, content)
+
+    return content
 
 
 @bot.message_handler(content_types=['video'])
 @handle_message
 def on_message_video(message, sender_id, receiver_id):
-    bot.send_video(receiver_id, message.video.file_id)
+    content = message.video.file_id
+    bot.send_video(receiver_id, content)
+
+    return content
 
 
 @bot.message_handler(content_types=['video_note'])
 @handle_message
 def on_message_video_note(message, sender_id, receiver_id):
-    bot.send_video_note(receiver_id, message.video_note.file_id)
+    content = message.video_note.file_id
+    bot.send_video_note(receiver_id, content)
+
+    return content
 
 
 @bot.message_handler(content_types=['document'])
 @handle_message
 def on_message_document(message, sender_id, receiver_id):
-    bot.send_document(receiver_id, message.document.file_id)
+    content = message.document.file_id
+    bot.send_document(receiver_id, content)
+
+    return content
 
 
 if __name__ == '__main__':

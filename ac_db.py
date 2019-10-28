@@ -22,6 +22,24 @@ class UserT(Base):
     partner = sa.Column(sa.INT, default=None)   # 0 - in queue
 
 
+class MessageT(Base):
+    """
+    chat_id = userid1_userid2
+    userid1 < userid2
+
+    sender = userid
+    """
+
+    __tablename__ = 'messages'
+
+    id = sa.Column(sa.INT, primary_key=True)
+    chat_id = sa.Column(sa.VARCHAR(64), nullable=False)
+    sender = sa.Column(sa.INT)
+    kind = sa.Column(sa.VARCHAR(64), nullable=False)
+    content = sa.Column(sa.TEXT, nullable=False)
+    creation_ts = sa.Column(sa.DATETIME)
+
+
 # class ChatT(Base):
 #     """
 #     userid1 < userid2
@@ -42,7 +60,7 @@ class DBConnecter:
         self.engine = sa.create_engine(DB_URL)
         self.DBSession = sessionmaker(bind=self.engine)
 
-    def create_user(self, user_id, username, gender, preference):
+    def store_user(self, user_id, username, gender, preference):
         user = UserT(
             id=user_id,
             username=username,
@@ -61,6 +79,17 @@ class DBConnecter:
             raise
         finally:
             session.close()
+
+    def store_message(self, user1, user2, content, kind='text'):
+        message = MessageT(
+            chat_id='_'.join(sorted([str(user1), str(user2)])),
+            sender=user1,
+            kind=kind,
+            content=content,
+            creation_ts=datetime.now().replace(microsecond=0)
+        )
+
+        self._store(message)
 
     # def create_chat(self, user1, user2):
     #     user1, user2 = sorted([user1, user2])

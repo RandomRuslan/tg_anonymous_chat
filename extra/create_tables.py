@@ -15,6 +15,17 @@ db.execute('''
     );
 ''')
 
+db.execute('''
+    CREATE TABLE IF NOT EXISTS messages (
+        id SERIAL,
+        chat_id VARCHAR(64) NOT NULL,
+        sender INTEGER NOT NULL,
+        kind VARCHAR(32) NOT NULL,
+        content TEXT NOT NULL,
+        creation_ts TIMESTAMP
+    );
+''')
+
 
 # db.execute('''
 #     CREATE TABLE IF NOT EXISTS chats (
