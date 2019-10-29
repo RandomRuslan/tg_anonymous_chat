@@ -2,9 +2,8 @@ from copy import deepcopy
 import json
 import logging
 from time import time
-import traceback
 
-from constants import MONITOR_ID
+from ac_monitor import on_error
 
 
 class Manager:
@@ -31,8 +30,7 @@ class Manager:
         try:
             self.db_conn.store_user(user_id, username, gender, preference)
         except:
-            self.bot.send_message(MONITOR_ID, 'Creation user exception:\n' + traceback.format_exc())
-            logging.error('Creation user exception', exc_info=True)
+            on_error(self.bot, 'Creation user exception')
             return
 
         self.users[user_id] = User(user_id, gender, preference)
@@ -61,8 +59,7 @@ class Manager:
             try:
                 self.db_conn.update_user(user_id, updated_data)
             except:
-                self.bot.send_message(MONITOR_ID, 'Update user exception:\n' + traceback.format_exc())
-                logging.error('Update user exception', exc_info=True)
+                on_error(self.bot, 'Update user exception')
 
     def load_users(self):
         users = {}
@@ -84,8 +81,7 @@ class Manager:
         try:
             user = self.db_conn.load_user_by_id(user_id)
         except:
-            self.bot.send_message(MONITOR_ID, 'Loading user exception:\n' + traceback.format_exc())
-            logging.error('Loading user exception', exc_info=True)
+            on_error(self.bot, 'Loading user exception')
             return
 
         if user:
@@ -109,8 +105,7 @@ class Manager:
         try:
             self.db_conn.store_message(user1, user2, content, kind)
         except:
-            self.bot.send_message(MONITOR_ID, 'Message store exception:\n' + traceback.format_exc())
-            logging.error('Message store exception', exc_info=True)
+            on_error(self.bot, 'Message store exception')
 
     def close_chat(self, user1, user2):
         self.pairs.pop(user1)

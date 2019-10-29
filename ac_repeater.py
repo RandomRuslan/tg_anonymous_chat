@@ -2,9 +2,8 @@ import logging
 import random
 from threading import Timer
 from time import time
-import traceback
 
-from constants import MONITOR_ID
+from ac_monitor import on_error
 
 
 class Repeater:
@@ -39,8 +38,7 @@ class Matcher:
                 if user_id in self.manager.queue['ff']:
                     self._do_match(user_id, self.manager.queue['ff'], [self.manager.queue['ff'], self.manager.queue['fb']])
         except:
-            self.manager.bot.send_message(MONITOR_ID, 'Match ff:\n' + traceback.format_exc())
-            logging.error('match ff', exc_info=True)
+            on_error(self.manager.bot, 'Match ff')
 
         try:
             processed_queue = list(self.manager.queue['mm'])
@@ -48,8 +46,7 @@ class Matcher:
                 if user_id in self.manager.queue['mm']:
                     self._do_match(user_id, self.manager.queue['mm'], [self.manager.queue['mm'], self.manager.queue['mb']])
         except:
-            self.manager.bot.send_message(MONITOR_ID, 'Match mm:\n' + traceback.format_exc())
-            logging.error('match mm', exc_info=True)
+            on_error(self.manager.bot, 'Match mm')
 
         try:
             processed_queue = list(self.manager.queue['fm'])
@@ -57,8 +54,7 @@ class Matcher:
                 if user_id in self.manager.queue['fm']:
                     self._do_match(user_id, self.manager.queue['fm'], [self.manager.queue['mf'], self.manager.queue['mb']])
         except:
-            self.manager.bot.send_message(MONITOR_ID, 'Match fm:\n' + traceback.format_exc())
-            logging.error('match fm', exc_info=True)
+            on_error(self.manager.bot, 'Match fm')
             
         try:
             processed_queue = list(self.manager.queue['mf'])
@@ -66,8 +62,7 @@ class Matcher:
                 if user_id in self.manager.queue['mf']:
                     self._do_match(user_id, self.manager.queue['mf'], [self.manager.queue['fb']])
         except:
-            self.manager.bot.send_message(MONITOR_ID, 'Match mf:\n' + traceback.format_exc())
-            logging.error('match mf', exc_info=True)
+            on_error(self.manager.bot, 'Match mf')
 
         try:
             processed_queue = list(self.manager.queue['fb'])
@@ -75,8 +70,7 @@ class Matcher:
                 if user_id in self.manager.queue['fb']:
                     self._do_match(user_id, self.manager.queue['fb'], [self.manager.queue['fb'], self.manager.queue['mb']])
         except:
-            self.manager.bot.send_message(MONITOR_ID, 'Match fb:\n' + traceback.format_exc())
-            logging.error('match fb', exc_info=True)
+            on_error(self.manager.bot, 'Match fb')
             
         try:
             processed_queue = list(self.manager.queue['mb'])
@@ -84,8 +78,7 @@ class Matcher:
                 if user_id in self.manager.queue['mb']:
                     self._do_match(user_id, self.manager.queue['mb'], [self.manager.queue['mb']])
         except:
-            self.manager.bot.send_message(MONITOR_ID, 'Match mb:\n' + traceback.format_exc())
-            logging.error('match mb', exc_info=True)
+            on_error(self.manager.bot, 'Match mb')
 
         logging.info('Queue after matching')
         for key, value in self.manager.queue.items():
