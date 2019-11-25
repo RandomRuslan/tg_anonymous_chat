@@ -9,7 +9,7 @@ from ac_manage import Manager
 from ac_monitor import on_error
 from ac_repeater import Matcher, Cleaner
 from ac_resources import Definitions
-from constants import LOG_FILE, LOG_LEVEL, TOKEN
+from constants import LOG_FILE, LOG_LEVEL, SUPPORT_EMAIL, TOKEN
 
 bot = TeleBot(TOKEN)
 
@@ -71,15 +71,17 @@ def check_user(func):
 
 @bot.message_handler(commands=['start'])
 def command_start(message):
-    text = definitions.get_text('info.welcome')
-    bot.send_message(message.chat.id, text)
+    bot.send_message(message.chat.id, definitions.get_text('info.welcome'))
+    bot.send_message(message.chat.id, definitions.get_text('info.commands'))
+    bot.send_message(message.chat.id, definitions.get_text('info.feedback', SUPPORT_EMAIL))
     show_gender_keyboard(message.chat.id)
 
 
 @bot.message_handler(commands=['help'])
 def command_help(message):
-    text = definitions.get_text('info.helper')
-    bot.send_message(message.chat.id, text)
+    bot.send_message(message.chat.id, definitions.get_text('info.helper'))
+    bot.send_message(message.chat.id, definitions.get_text('info.commands'))
+    bot.send_message(message.chat.id, definitions.get_text('info.feedback', SUPPORT_EMAIL))
 
 
 @bot.message_handler(commands=['prefer'])

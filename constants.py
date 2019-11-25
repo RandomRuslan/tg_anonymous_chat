@@ -2,6 +2,7 @@ TOKEN = ''
 DB_URL = ''
 
 MONITOR_ID = ''
+SUPPORT_EMAIL = ''
 
 LOG_FILE = 'tg.log'
 LOG_LEVEL = 20
