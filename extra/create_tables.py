@@ -9,8 +9,33 @@ db.execute('''
         id INTEGER PRIMARY KEY,
         username VARCHAR(64) UNIQUE NOT NULL,
         gender VARCHAR(2) NOT NULL, 
-        preference VARCHAR(2));
+        preference VARCHAR(2),
+        prev_partners TEXT,
+        partner INTEGER 
+    );
 ''')
+
+db.execute('''
+    CREATE TABLE IF NOT EXISTS messages (
+        id SERIAL,
+        chat_id VARCHAR(64) NOT NULL,
+        sender INTEGER NOT NULL,
+        kind VARCHAR(32) NOT NULL,
+        content TEXT NOT NULL,
+        creation_ts TIMESTAMP
+    );
+''')
+
+
+# db.execute('''
+#     CREATE TABLE IF NOT EXISTS chats (
+#         id SERIAL,
+#         userid1 INTEGER NOT NULL,
+#         userid2 INTEGER NOT NULL,
+#         startts TIMESTAMP,
+#         finishts TIMESTAMP
+#     );
+# ''')
 
 # try:
 #     db.execute("INSERT INTO users VALUES ('12345', 'my_first_user_in_table', 'm', 'b');")

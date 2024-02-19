@@ -1,184 +1,279 @@
 # -*- coding: utf-8 -*-
-import telebot
+
+import logging
+from telebot import TeleBot, types
 from time import time
 
-from constants import TOKEN
 from ac_db import DBConnecter
-import ac_ram
+from ac_manage import Manager
+from ac_monitor import on_error
+from ac_repeater import Matcher, Cleaner
+from ac_resources import Definitions
+from constants import LOG_FILE, LOG_LEVEL, SUPPORT_EMAIL, TOKEN
 
-bot = telebot.TeleBot(TOKEN)
+bot = TeleBot(TOKEN)
+
+
+def show_gender_keyboard(sender_id):
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    markup.add(
+        types.KeyboardButton(definitions.get_text('button.f')),
+        types.KeyboardButton(definitions.get_text('button.m'))
+    )
+
+    bot.send_message(sender_id, definitions.get_text('info.choose_gender'), reply_markup=markup)
+
+
+def try_to_create_user(message):
+    sender_id = message.chat.id
+    text = message.text or ''
+    text = text.strip().lower()
+
+    if not text:
+        bot.send_message(sender_id, definitions.get_text('refuse.lack.user'))
+        show_gender_keyboard(sender_id)
+        return
+
+    if text in ['м', 'm', definitions.get_text('button.m').strip().lower()]:
+        gender = 'm'
+        preference = 'f'
+    elif text in ['ж', 'f', definitions.get_text('button.f').strip().lower()]:
+        gender = 'f'
+        preference = 'm'
+    else:
+        show_gender_keyboard(sender_id)
+        return
+
+    manager.create_user(sender_id, message.chat.username, gender, preference)
+
+    markup = types.ReplyKeyboardRemove(selective=False)
+    text = definitions.get_text('accept.done.user', gender=gender, preference=preference)
+    bot.send_message(sender_id, text, reply_markup=markup)
+    bot.send_message(sender_id, definitions.get_text('info.choose_preference'))
+
+
+def check_user(func):
+    def wrapper(message):
+        sender_id = message.chat.id
+        user = manager.get_user_by_id(sender_id)
+        if not user:
+            try_to_create_user(message)
+            return
+
+        user.last_activity_ts = int(time())
+        try:
+            func(message)
+        except:
+            on_error(manager.bot, 'Command exception')
+
+    return wrapper
 
 
 @bot.message_handler(commands=['start'])
 def command_start(message):
-    text = 'Добро пожаловать!\nПеред использованием бота обязательно прочтите инструкцию и предостережения, вызвав комманду /help'
-    bot.send_message(message.chat.id, text)
+    bot.send_message(message.chat.id, definitions.get_text('info.welcome'))
+    bot.send_message(message.chat.id, definitions.get_text('info.commands'))
+    bot.send_message(message.chat.id, definitions.get_text('info.feedback', SUPPORT_EMAIL))
+    show_gender_keyboard(message.chat.id)
 
 
 @bot.message_handler(commands=['help'])
 def command_help(message):
-    text = 'Тыры-пыры helper'
-    bot.send_message(message.chat.id, text)
+    bot.send_message(message.chat.id, definitions.get_text('info.helper'))
+    bot.send_message(message.chat.id, definitions.get_text('info.commands'))
+    bot.send_message(message.chat.id, definitions.get_text('info.feedback', SUPPORT_EMAIL))
 
 
-@bot.message_handler(commands=['create'])
-def command_create(message):
+@bot.message_handler(commands=['prefer'])
+@check_user
+def command_prefer(message):
     sender_id = message.chat.id
-    if manager.users.get(sender_id) is not None:
-        bot.send_message(sender_id, 'Пользователь уже создан')
+
+    user = manager.users[sender_id]
+    if user.partner is not None:
+        bot.send_message(sender_id, definitions.get_text('refuse.preference_during_processing'))
         return
 
     text = message.text.split()
     if len(text) < 2:
-        bot.send_message(sender_id, 'Необходимо указать ваш пол')
+        bot.send_message(sender_id, definitions.get_text('refuse.lack.preference'))
         return
 
-    gender = text[1]
-    if gender.lower() in ['м', 'm']:
-        gender = 'm'
-    elif gender.lower() in ['ж', 'f']:
-        gender = 'f'
-    else:
-        bot.send_message(sender_id, 'Пол указан неверно')
-        return
-
-    if len(text) > 2:
-        preference = text[2]
-        if preference in ['м', 'm']:
-            preference = 'm'
-        elif preference in ['ж', 'f']:
-            preference = 'f'
-        else:
-            preference = 'b'
+    preference = text[1]
+    if preference in ['м', 'm']:
+        preference = 'm'
+    elif preference in ['ж', 'f']:
+        preference = 'f'
     else:
         preference = 'b'
 
-    db_conn.create_user(sender_id, message.chat.username, gender, preference)
-
-    manager.users[sender_id] = {
-        'gender': gender,
-        'preference': preference
-    }
-
-    bot.send_message(sender_id, 'Создан пользователь:\nпол - {gender}\nпредпочтения - {preference}'
-                     .format(gender=gender, preference=preference))
+    manager.update_user(sender_id, {'preference': preference})
+    bot.send_message(sender_id, definitions.get_text('accept.done.preference', preference=preference))
 
 
 @bot.message_handler(commands=['new'])
+@check_user
 def command_new(message):
     sender_id = message.chat.id
-    if manager.pairs.get(sender_id) is not None:
-        bot.send_message(sender_id, 'Вы уже в диалоге!')
+    user = manager.users[sender_id]
+
+    if user.partner:
+        bot.send_message(sender_id, definitions.get_text('refuse.already.chat'))
         return
 
-    queue = manager.queue
-    if sender_id in queue:
-        bot.send_message(sender_id, 'Поиск уже идет')
+    if user.partner == 0:
+        bot.send_message(sender_id, definitions.get_text('refuse.already.search'))
         return
 
-    for id in queue:
-        bot.send_message(sender_id, 'Пара найдена! Вы общаетесь с {}'.format(id))
-        bot.send_message(id, 'Пара найдена! Вы общаетесь с {}'.format(sender_id))
-        manager.queue.remove(id)
-        manager.pairs[id] = sender_id
-        manager.pairs[sender_id] = id
-        break
-    else:
-        bot.send_message(sender_id, 'Ожидайте')
-        print('User {} is waiting'.format(sender_id))
-        manager.queue.add(sender_id)
+    bot.send_message(sender_id, definitions.get_text('accept.start.search'))
+    manager.queue[user.queue_key].append(sender_id)
+    manager.update_user(sender_id, {'partner': 0})
 
 
 @bot.message_handler(commands=['stop'])
+@check_user
 def command_stop(message):
     sender_id = message.chat.id
-    if sender_id in manager.queue:
-        manager.queue.remove(sender_id)
-        bot.send_message(sender_id, 'Поиск пары остановлен')
+    user = manager.users[sender_id]
+
+    if user.partner == 0:
+        manager.queue[user.queue_key].remove(sender_id)
+        manager.update_user(sender_id, {'partner': None})
+        bot.send_message(sender_id, definitions.get_text('accept.stop.search'))
         return
 
-    if manager.pairs.get(sender_id) is None:
-        bot.send_message(sender_id, 'Начните диалог коммандой /new')
+    if user.partner is None:
+        bot.send_message(sender_id, definitions.get_text('info.command_new'))
         return
 
-    receiver_id = manager.pairs.pop(sender_id)
-    manager.pairs.pop(receiver_id)
+    receiver_id = manager.pairs[sender_id]
 
-    bot.send_message(sender_id, 'Диалог окончен. Для начала нового диалога используйте команду /new')
-    bot.send_message(receiver_id, 'Ваш собеседник прервал диалог. Для начала нового диалога используйте команду /new')
+    bot.send_message(sender_id, definitions.get_text('accept.stop.chat'))
+    bot.send_message(receiver_id, definitions.get_text('abrupt.chat_is_interrupted'))
+
+    manager.close_chat(sender_id, receiver_id)
 
 
-def check_partner(func):
+def handle_message(func):
     def wrapper(message):
         sender_id = message.chat.id
-        if manager.pairs.get(sender_id) is None:
-            if sender_id in manager.queue:
-                bot.send_message(sender_id, 'Все еще ожидайте')
-                return
-            else:
-                bot.send_message(sender_id, 'Начните диалог коммандой /new')
-                return
+        user = manager.get_user_by_id(sender_id)
+        if not user:
+            try_to_create_user(message)
+            return
+
+        if user.partner == 0:
+            bot.send_message(sender_id, definitions.get_text('refuse.already.search'))
+            return
+
+        if user.partner is None:
+            bot.send_message(sender_id, definitions.get_text('info.command_new'))
+            return
 
         receiver_id = manager.pairs[sender_id]
 
-        func(message, sender_id, receiver_id)
+        try:
+            content = func(message, sender_id, receiver_id)
+        except:
+            on_error(manager.bot, 'Message exception')
+            return
 
         if message.caption:
             bot.send_message(receiver_id, message.caption)
+            manager.save_message(sender_id, receiver_id, message.caption, 'text')
+
+        manager.save_message(sender_id, receiver_id, str(content), message.content_type)
 
     return wrapper
 
 
 @bot.message_handler(content_types=['text'])
-@check_partner
+@handle_message
 def on_message_text(message, sender_id, receiver_id):
-    bot.send_message(receiver_id, message.text)
+    content = message.text
+    bot.send_message(receiver_id, content)
+
+    return content
 
 
 @bot.message_handler(content_types=['voice'])
-@check_partner
+@handle_message
 def on_message_voice(message, sender_id, receiver_id):
-    bot.send_voice(receiver_id, message.voice.file_id)
+    content = message.voice.file_id
+    bot.send_voice(receiver_id, content)
+
+    return content
 
 
 @bot.message_handler(content_types=['sticker'])
-@check_partner
+@handle_message
 def on_message_sticker(message, sender_id, receiver_id):
-    bot.send_sticker(receiver_id, message.sticker.file_id)
+    content = message.sticker.file_id
+    bot.send_sticker(receiver_id, content)
+
+    return content
 
 
 @bot.message_handler(content_types=['audio'])
-@check_partner
+@handle_message
 def on_message_audio(message, sender_id, receiver_id):
-    bot.send_audio(receiver_id, message.audio.file_id)
+    content = message.audio.file_id
+    bot.send_audio(receiver_id, content)
+
+    return content
 
 
 @bot.message_handler(content_types=['photo'])
-@check_partner
+@handle_message
 def on_message_photo(message, sender_id, receiver_id):
-    bot.send_photo(receiver_id, message.photo[-1].file_id)
+    content = message.photo[-1].file_id
+    bot.send_photo(receiver_id, content)
+
+    return content
 
 
 @bot.message_handler(content_types=['video'])
-@check_partner
+@handle_message
 def on_message_video(message, sender_id, receiver_id):
-    bot.send_video(receiver_id, message.video.file_id)
+    content = message.video.file_id
+    bot.send_video(receiver_id, content)
+
+    return content
 
 
 @bot.message_handler(content_types=['video_note'])
-@check_partner
+@handle_message
 def on_message_video_note(message, sender_id, receiver_id):
-    bot.send_video_note(receiver_id, message.video_note.file_id)
+    content = message.video_note.file_id
+    bot.send_video_note(receiver_id, content)
+
+    return content
 
 
 @bot.message_handler(content_types=['document'])
-@check_partner
+@handle_message
 def on_message_document(message, sender_id, receiver_id):
-    bot.send_document(receiver_id, message.document.file_id)
+    content = message.document.file_id
+    bot.send_document(receiver_id, content)
+
+    return content
 
 
 if __name__ == '__main__':
-    print("START")
+    print('START')
+    logging.basicConfig(
+        filename=LOG_FILE,
+        level=LOG_LEVEL,
+        format=u'%(levelname)s [%(asctime)s %(funcName)s:%(lineno)d] %(message)s',
+        datefmt='%Y%m%d %H:%M:%S'
+    )
+    logging.warning('START')
+
     db_conn = DBConnecter()
-    manager = ac_ram.Manager(db_conn)
+    manager = Manager(db_conn, bot)
+
+    definitions = Definitions()
+    matcher = Matcher(manager)
+    cleaner = Cleaner(manager, bot)
+
     bot.polling(none_stop=True)
